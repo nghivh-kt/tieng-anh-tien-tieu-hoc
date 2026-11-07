@@ -367,19 +367,29 @@ const store = {
   set(k,v){try{localStorage.setItem(k,v)}catch(e){}}
 };
 
+const IS_APPLE_MOBILE = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
 function loadVoices(){
   if(!synth) return;
   voices = synth.getVoices();
   const en = voices.filter(v=>/^en[-_]/i.test(v.lang) || v.lang==="en");
   const sel = document.getElementById("voice");
-  if(!en.length){ sel.innerHTML='<option>(chưa có)</option>'; return; }
   en.sort((a,b)=>rank(a)-rank(b));
-  sel.innerHTML = en.map((v,i)=>`<option value="${i}">${v.name.replace(/Microsoft |Online |\(Natural\)/g,"").trim()} · ${v.lang}</option>`).join("");
+  // "sys" = không chỉ định giọng, để máy dùng giọng tiếng Anh mặc định trong Cài đặt
+  // (cách duy nhất để dùng giọng Nâng cao như Ava trên iPad/iPhone, vì Safari không liệt kê chúng)
+  sel.innerHTML = `<option value="sys">📱 Giọng mặc định của máy</option>` +
+    en.map((v,i)=>`<option value="${i}">${v.name.replace(/Microsoft |Online |\(Natural\)/g,"").trim()} · ${v.lang}</option>`).join("");
   const saved = store.get("voiceName");
-  let idx = saved ? en.findIndex(v=>v.name===saved) : -1;
-  if(idx<0) idx = 0;
-  sel.value = idx; enVoice = en[idx];
-  sel.onchange = ()=>{ enVoice = en[+sel.value]; store.set("voiceName",enVoice.name); speakSeq([{text:"Hello! I am a girl."}]); };
+  let val;
+  if(saved==="sys") val = "sys";
+  else if(saved && en.some(v=>v.name===saved)) val = String(en.findIndex(v=>v.name===saved));
+  else if(IS_APPLE_MOBILE || !en.length) val = "sys";
+  else val = "0";
+  sel.value = val; enVoice = val==="sys" ? null : en[+val];
+  sel.onchange = ()=>{
+    enVoice = sel.value==="sys" ? null : en[+sel.value];
+    store.set("voiceName", enVoice ? enVoice.name : "sys");
+    speakSeq([{text:"Hello! I am a girl."}]);
+  };
   viVoice = voices.find(v=>/^vi/i.test(v.lang)) || null;
   document.getElementById("warn").style.display="none";
 }
