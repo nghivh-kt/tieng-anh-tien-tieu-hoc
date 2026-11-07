@@ -403,6 +403,12 @@ function rank(v){
 if(synth){ loadVoices(); synth.onvoiceschanged = loadVoices; setTimeout(loadVoices,600); }
 else document.getElementById("warn").style.display="block";
 
+/* Một số giọng (nhất là trên iPad/iPhone) đọc chữ "I" đứng một mình thành "capital I".
+   Đọc bằng từ đồng âm "eye" /aɪ/ thì phát âm đúng như đại từ "I". */
+function speakable(text){
+  if(/^\s*I\s*[.!?]?\s*$/.test(text)) return "eye";
+  return text;
+}
 function rate(){ return parseFloat(document.getElementById("speed").value); }
 
 /* items: [{text, lang:'en'|'vi', el, words}] spoken one after another */
@@ -416,7 +422,7 @@ function speakSeq(items, onDone){
     if(i>=items.length){ clearHighlights(); onDone && onDone(); return; }
     const it = items[i++];
     if(it.lang==="vi" && !viVoice){ next(); return; }
-    const u = new SpeechSynthesisUtterance(it.text);
+    const u = new SpeechSynthesisUtterance(it.lang==='vi' ? it.text : speakable(it.text));
     if(it.lang==="vi"){ u.voice=viVoice; u.lang=viVoice.lang; u.rate=0.9; }
     else { if(enVoice){u.voice=enVoice; u.lang=enVoice.lang;} else u.lang="en-US"; u.rate=rate(); }
     u.pitch = 1.05;
